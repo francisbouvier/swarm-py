@@ -5,6 +5,8 @@ from setuptools import setup, find_packages
 
 requires = [
     'requests',
+    'tornado',
+    'docker-py',
 ]
 
 # Tests requirements
