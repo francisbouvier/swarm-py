@@ -17,7 +17,6 @@ DISCOVERY_URL = 'https://discovery-stage.hub.docker.com/v1'
 
 class ApiView(web.RequestHandler):
 
-    token = 'd036910705b59af530d82f63041b7f06'
     debug = False
 
     def prepare(self):
