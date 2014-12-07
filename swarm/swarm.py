@@ -84,19 +84,19 @@ class Swarm(object):
         self.token = token
         self.nodes = []
 
-    def create(self):
-        result = requests.post(DISCOVERY_URL + '/clusters')
+    def create(self, url):
+        result = requests.post(url + '/clusters')
         self.token = result.text
         return self.token
 
-    def list(self):
-        result = requests.get(DISCOVERY_URL + '/clusters/' + self.token)
+    def list(self, url):
+        result = requests.get(url + '/clusters/' + self.token)
         self.nodes = result.json()
         return self.nodes
 
-    def join(self, ip, port):
+    def join(self, url, ip, port):
         data = '%s:%s' % (ip, port)
-        requests.post(DISCOVERY_URL + '/clusters/' + self.token, data=data)
+        result = requests.post(url + '/clusters/' + self.token, data=data)
         self.list()
         return self.nodes
 
@@ -105,8 +105,8 @@ class Swarm(object):
         app.listen(port=int(port), address=ip)
         ioloop.IOLoop.instance().start()
 
-    def delete(self):
-        requests.delete(DISCOVERY_URL + '/clusters/' + self.token)
+    def delete(self, url):
+        requests.delete(url + '/clusters/' + self.token)
 
 
 def main():
@@ -118,12 +118,20 @@ def main():
         title='sub-commands', dest='subparser_name', help='sub-command help')
 
     # Create
-    subparsers.add_parser('create', help='Create')
+    swarm_create = subparsers.add_parser('create', help='Create')
+    swarm_create.add_argument(
+        '-u', '--url', help='Discovery API url',
+        default=DISCOVERY_URL, required=False
+    )
 
     # List
     swarm_list = subparsers.add_parser('list', help='List')
     swarm_list.add_argument(
         '-t', '--token', help='Token', required=True)
+    swarm_list.add_argument(
+        '-u', '--url', help='Discovery API url',
+        default=DISCOVERY_URL, required=False
+    )
 
     # Join
     swarm_join = subparsers.add_parser('join', help='Join')
@@ -131,6 +139,10 @@ def main():
         '-t', '--token', help='Token', required=True)
     swarm_join.add_argument(
         '-a', '--addr', help='Address', required=True)
+    swarm_join.add_argument(
+        '-u', '--url', help='Discovery API url',
+        default=DISCOVERY_URL, required=False
+    )
 
     # Manage
     swarm_manage = subparsers.add_parser('manage', help='Manage')
@@ -143,22 +155,26 @@ def main():
     swarm_delete = subparsers.add_parser('delete', help='delete')
     swarm_delete.add_argument(
         '-t', '--token', help='Token', required=True)
+    swarm_delete.add_argument(
+        '-u', '--url', help='Discovery API url',
+        default=DISCOVERY_URL, required=False
+    )
 
     # Launch
     args = parser.parse_args()
     swarm = Swarm()
 
     if args.subparser_name == 'create':
-        print(swarm.create())
+        print(swarm.create(args.url))
 
     elif args.subparser_name == 'list':
         swarm.token = args.token
-        print(swarm.list())
+        print(swarm.list(args.url))
 
     elif args.subparser_name == 'join':
         swarm.token = args.token
         ip, port = args.addr.split(':')
-        print(swarm.join(ip, port))
+        print(swarm.join(args.url, ip, port))
 
     elif args.subparser_name == 'manage':
         swarm.token = args.token
@@ -167,7 +183,7 @@ def main():
 
     elif args.subparser_name == 'delete':
         swarm.token = args.token
-        swarm.delete()
+        swarm.delete(args.url)
 
 
 if __name__ == "__main__":
