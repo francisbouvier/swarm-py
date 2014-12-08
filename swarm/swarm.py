@@ -92,13 +92,16 @@ class Swarm(object):
     def list(self, url):
         result = requests.get(url + '/clusters/' + self.token)
         self.nodes = result.json()
-        return self.nodes
+        if self.nodes:
+            return '\n'.join(self.nodes)
 
     def join(self, url, ip, port):
         data = '%s:%s' % (ip, port)
         result = requests.post(url + '/clusters/' + self.token, data=data)
-        self.list()
-        return self.nodes
+        if result.status_code == 200:
+            return self.list(url)
+        else:
+            return result.text
 
     def manage(self, ip='127.0.0.1', port='4244'):
         app = web.Application(URLS)
@@ -169,7 +172,9 @@ def main():
 
     elif args.subparser_name == 'list':
         swarm.token = args.token
-        print(swarm.list(args.url))
+        cluster_list = swarm.list(args.url)
+        if cluster_list is not None:
+            print(cluster_list)
 
     elif args.subparser_name == 'join':
         swarm.token = args.token
