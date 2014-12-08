@@ -58,7 +58,7 @@ class SwarmView(ApiView):
 
 class VersionView(SwarmView):
 
-    def get(self):
+    def get(self, **kwargs):
         version = OrderedDict()
         version['Version'] = 'swarm/%s' % SWARM_VERSION
         version['GitCommit'] = SWARM_VERSION_GIT
@@ -67,7 +67,7 @@ class VersionView(SwarmView):
 
 class InfoView(SwarmView):
 
-    def get(self):
+    def get(self, **kwargs):
         info = OrderedDict()
         info['Containers'] = 0
         info['DriverStatus'] = [
@@ -90,8 +90,9 @@ class InfoView(SwarmView):
 class SwarmServer(web.Application):
 
     def __init__(self, swarm, *args, **kwargs):
+        v = r'/(?P<version>v\d.\d+/){0,1}'
         urls = [
-            (r'/version', VersionView, {'swarm': swarm}),
-            (r'/info', InfoView, {'swarm': swarm}),
+            (v + 'version', VersionView, {'swarm': swarm}),
+            (v + 'info', InfoView, {'swarm': swarm}),
         ]
         super(SwarmServer, self).__init__(urls, *args, **kwargs)
