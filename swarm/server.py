@@ -6,9 +6,12 @@ from __future__ import print_function
 
 import json
 import random
+import logging
 
 from tornado import web
 from docker import Client
+
+logger = logging.getLogger(__name__)
 
 
 class ApiView(web.RequestHandler):
@@ -51,6 +54,7 @@ class SwarmView(ApiView):
 class InfoView(SwarmView):
 
     def get(self):
+        logger.info('GET /info')
         info = {
             'Containers': 0,
             'DriverStatus': [

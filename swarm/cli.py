@@ -4,11 +4,16 @@
 from __future__ import unicode_literals
 from __future__ import print_function
 
+import logging
 import argparse
+
 import requests
 from tornado import ioloop
+from colorlog import ColoredFormatter
 
 from swarm.server import SwarmServer
+
+logger = logging.getLogger('swarm')
 
 DISCOVERY_URL = 'https://discovery-stage.hub.docker.com/v1'
 
@@ -103,8 +108,26 @@ def main():
         default=DISCOVERY_URL, required=False
     )
 
-    # Launch
     args = parser.parse_args()
+
+    # Logging
+    logger.setLevel(logging.DEBUG)
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.DEBUG)
+    formatter = ColoredFormatter(
+        '%(log_color)s%(levelname)-s%(reset)s %(message)s',
+        log_colors={
+            'DEBUG': 'cyan',
+            'INFO': 'blue',
+            'WARNING': 'yellow',
+            'ERROR': 'red',
+            'CRITICAL': 'red',
+        }
+    )
+    ch.setFormatter(formatter)
+    logger.addHandler(ch)
+
+    # Launch
     swarm = Swarm(url=args.url)
 
     if args.subparser_name == 'create':

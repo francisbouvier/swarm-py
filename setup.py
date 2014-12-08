@@ -7,6 +7,7 @@ requires = [
     'requests',
     'tornado',
     'docker-py',
+    'colorlog',
 ]
 
 # Tests requirements
