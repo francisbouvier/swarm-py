@@ -42,6 +42,11 @@ class SwarmView(ApiView):
         """Dummy random select function"""
         return random.choice(self.swarm.nodes)
 
+    def prepare(self):
+        super(SwarmView, self).prepare()
+        # Refresh nodes before each API call
+        self._swarm.list()
+
 
 class InfoView(SwarmView):
 
