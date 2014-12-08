@@ -51,6 +51,7 @@ class SwarmView(ApiView):
 
     def prepare(self):
         super(SwarmView, self).prepare()
+        logger.info('%s %s' % (self.request.method, self.request.uri))
         # Refresh nodes before each API call
         self._swarm.list()
 
@@ -58,7 +59,6 @@ class SwarmView(ApiView):
 class VersionView(SwarmView):
 
     def get(self):
-        logger.info('GET /version')
         version = OrderedDict()
         version['Version'] = 'swarm/%s' % SWARM_VERSION
         version['GitCommit'] = SWARM_VERSION_GIT
@@ -68,7 +68,6 @@ class VersionView(SwarmView):
 class InfoView(SwarmView):
 
     def get(self):
-        logger.info('GET /info')
         info = OrderedDict()
         info['Containers'] = 0
         info['DriverStatus'] = [
