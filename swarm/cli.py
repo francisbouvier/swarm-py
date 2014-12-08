@@ -15,26 +15,27 @@ DISCOVERY_URL = 'https://discovery-stage.hub.docker.com/v1'
 
 class Swarm(object):
 
-    def __init__(self, token=None):
+    def __init__(self, url=DISCOVERY_URL, token=None):
+        self.url = url
         self.token = token
         self.nodes = []
 
-    def create(self, url):
-        result = requests.post(url + '/clusters')
+    def create(self):
+        result = requests.post(self.url + '/clusters')
         self.token = result.text
         return self.token
 
-    def list(self, url):
-        result = requests.get(url + '/clusters/' + self.token)
+    def list(self):
+        result = requests.get(self.url + '/clusters/' + self.token)
         self.nodes = result.json()
         if self.nodes:
             return '\n'.join(self.nodes)
 
-    def join(self, url, ip, port):
+    def join(self, ip, port):
         data = '%s:%s' % (ip, port)
-        result = requests.post(url + '/clusters/' + self.token, data=data)
+        result = requests.post(self.url + '/clusters/' + self.token, data=data)
         if result.status_code == 200:
-            return self.list(url)
+            return self.list()
         else:
             return result.text
 
@@ -43,8 +44,8 @@ class Swarm(object):
         app.listen(port=int(port), address=ip)
         ioloop.IOLoop.instance().start()
 
-    def delete(self, url):
-        requests.delete(url + '/clusters/' + self.token)
+    def delete(self):
+        requests.delete(self.url + '/clusters/' + self.token)
 
 
 def main():
@@ -88,6 +89,10 @@ def main():
         '-t', '--token', help='Token', required=True)
     swarm_manage.add_argument(
         '-a', '--addr', help='Address', required=True)
+    swarm_manage.add_argument(
+        '-u', '--url', help='Discovery API url',
+        default=DISCOVERY_URL, required=False
+    )
 
     # Delete
     swarm_delete = subparsers.add_parser('delete', help='delete')
@@ -100,21 +105,21 @@ def main():
 
     # Launch
     args = parser.parse_args()
-    swarm = Swarm()
+    swarm = Swarm(url=args.url)
 
     if args.subparser_name == 'create':
-        print(swarm.create(args.url))
+        print(swarm.create())
 
     elif args.subparser_name == 'list':
         swarm.token = args.token
-        cluster_list = swarm.list(args.url)
+        cluster_list = swarm.list()
         if cluster_list is not None:
             print(cluster_list)
 
     elif args.subparser_name == 'join':
         swarm.token = args.token
         ip, port = args.addr.split(':')
-        print(swarm.join(args.url, ip, port))
+        print(swarm.join(ip, port))
 
     elif args.subparser_name == 'manage':
         swarm.token = args.token
@@ -123,7 +128,7 @@ def main():
 
     elif args.subparser_name == 'delete':
         swarm.token = args.token
-        swarm.delete(args.url)
+        swarm.delete()
 
 
 if __name__ == "__main__":
