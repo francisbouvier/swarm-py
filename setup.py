@@ -27,7 +27,7 @@ setup(
     install_requires=requires,
     entry_points={
         'console_scripts': [
-            'swarm-py = swarm.swarm:main',
+            'swarm-py = swarm.cli:main',
         ]
     }
 )
