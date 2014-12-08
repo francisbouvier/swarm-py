@@ -17,8 +17,6 @@ DISCOVERY_URL = 'https://discovery-stage.hub.docker.com/v1'
 
 class ApiView(web.RequestHandler):
 
-    debug = False
-
     def prepare(self):
         # Unify arguments loading (json, form-urlencoded) to self.arguments
         content_type = self.request.headers.get("Content-Type")
@@ -40,13 +38,13 @@ class ApiView(web.RequestHandler):
 
 class SwarmView(ApiView):
 
+    def __init__(self, *args, **kwargs):
+        self._swarm = kwargs.pop('swarm')
+        super(SwarmView, self).__init__(*args, **kwargs)
+
     def _select(self):
         """Dummy random select function"""
         return random.choice(self.swarm.nodes)
-
-    def prepare(self):
-        super(SwarmView, self).prepare()
-        self._swarm = Swarm(self.token)
 
 
 class InfoView(SwarmView):
@@ -73,9 +71,13 @@ class InfoView(SwarmView):
         self.write(info)
 
 
-URLS = [
-    (r'/info', InfoView),
-]
+class SwarmServer(web.Application):
+
+    def __init__(self, swarm, *args, **kwargs):
+        urls = [
+            (r'/info', InfoView, {'swarm': swarm}),
+        ]
+        super(SwarmServer, self).__init__(urls, *args, **kwargs)
 
 
 class Swarm(object):
@@ -104,7 +106,7 @@ class Swarm(object):
             return result.text
 
     def manage(self, ip='127.0.0.1', port='4244'):
-        app = web.Application(URLS)
+        app = SwarmServer(swarm=self, debug=True)
         app.listen(port=int(port), address=ip)
         ioloop.IOLoop.instance().start()
 
