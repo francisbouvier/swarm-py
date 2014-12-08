@@ -13,6 +13,9 @@ from docker import Client
 
 logger = logging.getLogger(__name__)
 
+SWARM_VERSION = '0.0.1'
+SWARM_VERSION_GIT = 'swam'
+
 
 class ApiView(web.RequestHandler):
 
@@ -51,6 +54,17 @@ class SwarmView(ApiView):
         self._swarm.list()
 
 
+class VersionView(SwarmView):
+
+    def get(self):
+        logger.info('GET /version')
+        version = {
+            'Version': 'swarm/%s' % SWARM_VERSION,
+            'GitCommit': SWARM_VERSION_GIT,
+        }
+        self.write(version)
+
+
 class InfoView(SwarmView):
 
     def get(self):
@@ -80,6 +94,7 @@ class SwarmServer(web.Application):
 
     def __init__(self, swarm, *args, **kwargs):
         urls = [
+            (r'/version', VersionView, {'swarm': swarm}),
             (r'/info', InfoView, {'swarm': swarm}),
         ]
         super(SwarmServer, self).__init__(urls, *args, **kwargs)
