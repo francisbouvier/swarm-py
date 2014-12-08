@@ -7,6 +7,7 @@ from __future__ import print_function
 import json
 import random
 import logging
+from collections import OrderedDict
 
 from tornado import web
 from docker import Client
@@ -58,10 +59,9 @@ class VersionView(SwarmView):
 
     def get(self):
         logger.info('GET /version')
-        version = {
-            'Version': 'swarm/%s' % SWARM_VERSION,
-            'GitCommit': SWARM_VERSION_GIT,
-        }
+        version = OrderedDict()
+        version['Version'] = 'swarm/%s' % SWARM_VERSION
+        version['GitCommit'] = SWARM_VERSION_GIT
         self.write(version)
 
 
@@ -69,24 +69,22 @@ class InfoView(SwarmView):
 
     def get(self):
         logger.info('GET /info')
-        info = {
-            'Containers': 0,
-            'DriverStatus': [
-                [
-                    'Nodes',
-                    unicode(len(self._swarm.nodes))
-                ],
-                [],
+        info = OrderedDict()
+        info['Containers'] = 0
+        info['DriverStatus'] = [
+            [
+                'Nodes',
+                unicode(len(self._swarm.nodes))
             ],
-            'NEventsListener': 0,  # TODO
-            'Debug': False,
-        }
+        ]
+        info['NEventsListener'] = 0  # TODO
+        info['Debug'] = False
         for node in self._swarm.nodes:
             node_client = Client(base_url='tcp://%s' % node)
             node_info = node_client.info()
             info['Containers'] += node_info['Containers']
-            info['DriverStatus'][1].append(node_info['Name'])
-            info['DriverStatus'][1].append('http://%s' % node)
+            info['DriverStatus'].append(
+                [node_info['Name'], 'http://%s' % node])
         self.write(info)
 
 
