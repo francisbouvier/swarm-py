@@ -89,6 +89,32 @@ class InfoView(SwarmView):
         self.write(info)
 
 
+class ContainersView(SwarmView):
+
+    def get(self, **kwargs):
+        containers = []
+        params = {
+            'all': int(self.arguments.get('all', 0)),
+        }
+        for node in self._swarm.nodes:
+            node_client = Client(base_url='tcp://%s' % node)
+            node_info = node_client.info()
+            node_containers = node_client.containers(**params)
+            for container in node_containers:
+                # Prepend Node Id in the name
+                names = []
+                for name in container['Names']:
+                    name = '/%s%s' % (node_info['Name'], name)
+                    names.append(name)
+                container['Names'] = names
+                # Replace IP '0.0.0.0' by Node IP
+                for port in container['Ports']:
+                    if port['IP'] == '0.0.0.0':
+                        port['IP'] = node.split(':')[0]
+                containers.append(container)
+        self.write(json.dumps(containers))
+
+
 class SwarmServer(web.Application):
 
     def __init__(self, swarm, *args, **kwargs):
@@ -96,5 +122,6 @@ class SwarmServer(web.Application):
         urls = [
             (v + 'version', VersionView, {'swarm': swarm}),
             (v + 'info', InfoView, {'swarm': swarm}),
+            (v + 'containers/json', ContainersView, {'swarm': swarm}),
         ]
         super(SwarmServer, self).__init__(urls, *args, **kwargs)

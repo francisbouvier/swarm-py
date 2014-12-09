@@ -38,3 +38,17 @@ class SwarmManageTest(unittest.TestCase):
         del g_json['GoVersion']
         p = requests.get(self.get_url('python') + 'version')
         self.assertEqual(p.json(), g_json)
+
+    def test_containers(self, params=''):
+        g = requests.get(self.get_url('go') + 'containers/json' + params)
+        # Hack : swarm-py doesn't handle 'SizeRw' and 'SizeRootFs'
+        # (docker client version ?)
+        g_json = g.json()
+        for container in g_json:
+            del container['SizeRw']
+            del container['SizeRootFs']
+        p = requests.get(self.get_url('python') + 'containers/json' + params)
+        self.assertEqual(p.json(), g_json)
+
+    def test_containers_all(self):
+        self.test_containers(params='?all=1')
