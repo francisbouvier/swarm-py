@@ -3,10 +3,11 @@
 *.log
 *.coverage
 .Python
+.fuse*
 
 bin/
 include/
 lib/
 .ropeproject/
-*/htmlcov/
+htmlcov/
 *.egg-info/
