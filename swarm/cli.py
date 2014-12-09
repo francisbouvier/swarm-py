@@ -12,6 +12,7 @@ from tornado import ioloop
 from colorlog import ColoredFormatter
 
 from swarm.server import SwarmServer
+from swarm.models import Cluster
 
 logger = logging.getLogger('swarm')
 
@@ -22,23 +23,22 @@ class Swarm(object):
 
     def __init__(self, url=DISCOVERY_URL, token=None):
         self.url = url
-        self.token = token
-        self.nodes = []
+        self.cluster = None
 
     def create(self):
         result = requests.post(self.url + '/clusters')
-        self.token = result.text
-        return self.token
+        return result.text
 
     def list(self):
-        result = requests.get(self.url + '/clusters/' + self.token)
-        self.nodes = result.json()
-        if self.nodes:
-            return '\n'.join(self.nodes)
+        result = requests.get(self.url + '/clusters/' + self.cluster.token)
+        self.cluster.hosts = result.json()
+        if self.cluster.hosts:
+            return '\n'.join(self.cluster.hosts)
 
     def join(self, ip, port):
         data = '%s:%s' % (ip, port)
-        result = requests.post(self.url + '/clusters/' + self.token, data=data)
+        result = requests.post(
+            self.url + '/clusters/' + self.cluster.token, data=data)
         if result.status_code == 200:
             return self.list()
         else:
@@ -50,7 +50,7 @@ class Swarm(object):
         ioloop.IOLoop.instance().start()
 
     def delete(self):
-        requests.delete(self.url + '/clusters/' + self.token)
+        requests.delete(self.url + '/clusters/' + self.cluster.token)
 
 
 def main():
@@ -134,23 +134,23 @@ def main():
         print(swarm.create())
 
     elif args.subparser_name == 'list':
-        swarm.token = args.token
+        swarm.cluster = Cluster(args.token)
         cluster_list = swarm.list()
         if cluster_list is not None:
             print(cluster_list)
 
     elif args.subparser_name == 'join':
-        swarm.token = args.token
+        swarm.cluster = Cluster(args.token)
         ip, port = args.addr.split(':')
         print(swarm.join(ip, port))
 
     elif args.subparser_name == 'manage':
-        swarm.token = args.token
+        swarm.cluster = Cluster(args.token)
         ip, port = args.addr.split(':')
         swarm.manage(ip, port)
 
     elif args.subparser_name == 'delete':
-        swarm.token = args.token
+        swarm.cluster = Cluster(args.token)
         swarm.delete()
 
 

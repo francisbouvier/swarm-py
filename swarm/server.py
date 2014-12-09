@@ -9,7 +9,6 @@ import random
 import logging
 
 from tornado import web
-from docker import Client
 
 logger = logging.getLogger(__name__)
 
@@ -43,16 +42,18 @@ class SwarmView(ApiView):
 
     def __init__(self, *args, **kwargs):
         self._swarm = kwargs.pop('swarm')
+        self.cluster = kwargs.pop('cluster')
         super(SwarmView, self).__init__(*args, **kwargs)
 
     def _select(self):
         """Dummy random select function"""
-        return random.choice(self.swarm.nodes)
+        return random.choice(self.cluster.hosts)
 
     def prepare(self):
         super(SwarmView, self).prepare()
         logger.info('%s %s' % (self.request.method, self.request.uri))
-        # Refresh nodes before each API call
+        # Refresh hosts before each API call
+        # TODO: check to implement a refresh async version with heartbeat
         self._swarm.list()
 
 
@@ -74,18 +75,19 @@ class InfoView(SwarmView):
             'DriverStatus': [
                 [
                     'Nodes',
-                    unicode(len(self._swarm.nodes))
+                    unicode(len(self.cluster.hosts))
                 ],
             ],
             'NEventsListener': 0,  # TODO
             'Debug': False,
         }
-        for node in self._swarm.nodes:
-            node_client = Client(base_url='tcp://%s' % node)
-            node_info = node_client.info()
-            info['Containers'] += node_info['Containers']
+        # TODO: use an event system to triger changes
+        self.cluster.refresh_nodes()
+        for host in self.cluster.hosts:
+            node = self.cluster.nodes[host]
+            info['Containers'] += node.info['Containers']
             info['DriverStatus'].append(
-                [node_info['Name'], 'http://%s' % node])
+                [node.info['Name'], 'http://%s' % host])
         self.write(info)
 
 
@@ -96,22 +98,15 @@ class ContainersView(SwarmView):
         params = {
             'all': int(self.arguments.get('all', 0)),
         }
-        for node in self._swarm.nodes:
-            node_client = Client(base_url='tcp://%s' % node)
-            node_info = node_client.info()
-            node_containers = node_client.containers(**params)
-            for container in node_containers:
-                # Prepend Node Id in the name
-                names = []
-                for name in container['Names']:
-                    name = '/%s%s' % (node_info['Name'], name)
-                    names.append(name)
-                container['Names'] = names
-                # Replace IP '0.0.0.0' by Node IP
-                for port in container['Ports']:
-                    if port['IP'] == '0.0.0.0':
-                        port['IP'] = node.split(':')[0]
-                containers.append(container)
+        # TODO: use an event system to triger changes
+        self.cluster.refresh_containers()
+        for host in self.cluster.hosts:
+            for container in self.cluster.nodes[host].containers:
+                if params['all'] == 0:
+                    if container.is_up:
+                        containers.append(container.info)
+                else:
+                    containers.append(container.info)
         self.write(json.dumps(containers))
 
 
@@ -119,9 +114,10 @@ class SwarmServer(web.Application):
 
     def __init__(self, swarm, *args, **kwargs):
         v = r'/(?P<version>v\d.\d+/){0,1}'
+        extra = {'swarm': swarm, 'cluster': swarm.cluster}
         urls = [
-            (v + 'version', VersionView, {'swarm': swarm}),
-            (v + 'info', InfoView, {'swarm': swarm}),
-            (v + 'containers/json', ContainersView, {'swarm': swarm}),
+            (v + 'version', VersionView, extra),
+            (v + 'info', InfoView, extra),
+            (v + 'containers/json', ContainersView, extra),
         ]
         super(SwarmServer, self).__init__(urls, *args, **kwargs)
