@@ -14,7 +14,7 @@ from docker import Client
 logger = logging.getLogger(__name__)
 
 SWARM_VERSION = '0.0.1'
-SWARM_VERSION_GIT = 'swam'
+SWARM_VERSION_GIT = 'swarm'
 
 
 class ApiView(web.RequestHandler):
