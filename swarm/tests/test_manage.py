@@ -52,3 +52,10 @@ class SwarmManageTest(unittest.TestCase):
 
     def test_containers_all(self):
         self.test_containers(params='?all=1')
+
+    def test_container(self):
+        pk = '9be8b99fc891c6e653da3f05f0e71e1cb38cce9353f331c3981bbe8bda8ba729'
+        extra_url = 'containers/%s/json' % pk
+        g = requests.get(self.get_url('go') + extra_url)
+        p = requests.get(self.get_url('go') + extra_url)
+        self.assertEqual(p.json(), g.json())

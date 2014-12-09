@@ -110,6 +110,18 @@ class ContainersView(SwarmView):
         self.write(json.dumps(containers))
 
 
+class ContainerView(SwarmView):
+
+    def get(self, **kwargs):
+        # TODO: use an event system to triger changes
+        self.cluster.refresh_containers()
+        container = self.cluster.find_container(kwargs['pk'])
+        if container is None:
+            self.write('')
+        else:
+            self.write(container.inspect)
+
+
 class SwarmServer(web.Application):
 
     def __init__(self, swarm, *args, **kwargs):
@@ -119,5 +131,6 @@ class SwarmServer(web.Application):
             (v + 'version', VersionView, extra),
             (v + 'info', InfoView, extra),
             (v + 'containers/json', ContainersView, extra),
+            (v + 'containers/(?P<pk>\w+)/json', ContainerView, extra),
         ]
         super(SwarmServer, self).__init__(urls, *args, **kwargs)
