@@ -21,17 +21,18 @@ class ApiView(web.RequestHandler):
 
     def prepare(self):
         # Unify arguments loading (json, form-urlencoded) to self.arguments
-        content_type = self.request.headers.get("Content-Type")
-        if content_type is not None:
-            self.arguments = {}
-            if content_type.startswith('application/x-www-form-urlencoded'):
-                for arg in self.request.arguments:
-                    value = self.get_arguments(arg)
-                    if len(value) == 1:
-                        value = value[0]
-                    self.arguments[arg] = value
-            elif content_type.startswith('application/json'):
+        self.arguments = {}
+        if self.request.arguments:
+            for arg in self.request.arguments:
+                value = self.get_arguments(arg)
+                if len(value) == 1:
+                    value = value[0]
+                self.arguments[arg] = value
+        else:
+            try:
                 self.arguments = json.loads(self.request.body)
+            except ValueError:
+                pass
 
     def write(self, data):
         self.set_header('Content-Type', 'application/json')
